@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kitchen Game - レシピ配達ゲーム</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🍳 Kitchen Game 🍳</h1>
+            <p class="subtitle">正しいレシピを配達しよう！</p>
+        </header>
+
+        <div class="game-controls">
+            <button id="startBtn" class="btn btn-primary">ゲーム開始</button>
+            <button id="stopBtn" class="btn btn-danger" disabled>ゲーム終了</button>
+        </div>
+
+        <div class="game-board">
+            <!-- Statistics Panel -->
+            <div class="panel stats-panel">
+                <h2>📊 統計</h2>
+                <div class="stats-grid">
+                    <div class="stat-item">
+                        <div class="stat-value" id="points">0</div>
+                        <div class="stat-label">ポイント</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value" id="streak">0</div>
+                        <div class="stat-label">ストリーク</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value" id="combo">x1.0</div>
+                        <div class="stat-label">コンボ倍率</div>
+                    </div>
+                    <div class="stat-item success">
+                        <div class="stat-value" id="success">0</div>
+                        <div class="stat-label">成功</div>
+                    </div>
+                    <div class="stat-item failed">
+                        <div class="stat-value" id="failed">0</div>
+                        <div class="stat-label">失敗</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Waiting Recipes Panel -->
+            <div class="panel recipes-panel">
+                <h2>📋 待機中のレシピ</h2>
+                <div id="waitingRecipes" class="recipes-list">
+                    <p class="no-recipes">ゲームを開始してください</p>
+                </div>
+            </div>
+
+            <!-- Ingredient Selection Panel -->
+            <div class="panel ingredients-panel">
+                <h2>🥗 材料選択</h2>
+                <div class="ingredients-grid">
+                    <button class="ingredient-btn" data-ingredient="Tomato">
+                        🍅 トマト
+                    </button>
+                    <button class="ingredient-btn" data-ingredient="Lettuce">
+                        🥬 レタス
+                    </button>
+                    <button class="ingredient-btn" data-ingredient="Bread">
+                        🍞 パン
+                    </button>
+                    <button class="ingredient-btn" data-ingredient="Cheese">
+                        🧀 チーズ
+                    </button>
+                    <button class="ingredient-btn" data-ingredient="Meat">
+                        🥩 肉
+                    </button>
+                </div>
+                <div class="selected-ingredients">
+                    <h3>選択中の材料:</h3>
+                    <div id="selectedIngredients" class="selected-list"></div>
+                    <div class="delivery-controls">
+                        <button id="deliverBtn" class="btn btn-success" disabled>配達する</button>
+                        <button id="clearBtn" class="btn btn-secondary">クリア</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Player Statistics Panel -->
+        <div class="panel player-stats-panel">
+            <h2>🏆 プレイヤー統計</h2>
+            <div class="player-stats-grid">
+                <div class="player-stat">
+                    <span class="label">総ゲーム数:</span>
+                    <span class="value" id="totalGames">0</span>
+                </div>
+                <div class="player-stat">
+                    <span class="label">総成功配達:</span>
+                    <span class="value" id="totalSuccess">0</span>
+                </div>
+                <div class="player-stat">
+                    <span class="label">総失敗:</span>
+                    <span class="value" id="totalFailed">0</span>
+                </div>
+                <div class="player-stat">
+                    <span class="label">総ポイント:</span>
+                    <span class="value" id="totalPoints">0</span>
+                </div>
+                <div class="player-stat">
+                    <span class="label">最高ストリーク:</span>
+                    <span class="value" id="bestStreak">0</span>
+                </div>
+            </div>
+        </div>
+
+        <footer>
+            <p>&copy; 2025 Kitchen Game - GitHub Copilot Workshop</p>
+        </footer>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/game.js') }}"></script>
+</body>
+</html>
