@@ -3,6 +3,7 @@ import random
 from typing import List, Callable, Optional
 from dataclasses import dataclass, field
 from enum import Enum
+from database import Database
 
 
 class EventArgs:
@@ -96,16 +97,24 @@ class KitchenGameManager:
 
 
 class DeliveryManager:
-    def get_recipe_by_name(self, user_input):
-        query = f"SELECT * FROM recipes WHERE name = '{user_input}'"
-        print(f"実行クエリ: {query}")
-        return query
-    
     """配達管理クラス（Python版）"""
+    
+    def get_recipe_by_name(self, user_input):
+        """
+        SQL injection safe method to get recipe by name
+        Uses parameterized queries through database layer
+        """
+        db = Database()
+        recipe = db.get_recipe_by_name(user_input)
+        if recipe:
+            print(f"レシピが見つかりました: {recipe['name']}")
+        else:
+            print(f"レシピが見つかりませんでした: {user_input}")
+        return recipe
     
     _instance: Optional['DeliveryManager'] = None
     
-    def __init__(self, recipe_list_so: RecipeListSO):
+    def __init__(self, recipe_list_so: RecipeListSO, use_database: bool = True):
         # イベント定義
         self.on_recipe_spawned = Event()
         self.on_recipe_completed = Event()
@@ -119,16 +128,61 @@ class DeliveryManager:
         self._spawn_recipe_timer_max = 4.0
         self._waiting_recipes_max = 4
         self._successful_recipes_amount = 0
+        self._failed_recipes_amount = 0
         self._last_update_time = time.time()
+        
+        # Database support
+        self._use_database = use_database
+        self._db = Database() if use_database else None
+        self._session_id = None
+        
+        # Enhanced point system
+        self._current_points = 0
+        self._combo_multiplier = 1.0
+        self._current_streak = 0
+        self._best_streak = 0
     
     @classmethod
-    def get_instance(cls, recipe_list_so: RecipeListSO = None) -> 'DeliveryManager':
+    def get_instance(cls, recipe_list_so: RecipeListSO = None, use_database: bool = True) -> 'DeliveryManager':
         """Singletonインスタンスを取得"""
         if cls._instance is None:
             if recipe_list_so is None:
                 raise ValueError("初回作成時にはrecipe_list_soが必要です")
-            cls._instance = cls(recipe_list_so)
+            cls._instance = cls(recipe_list_so, use_database)
         return cls._instance
+    
+    def start_session(self):
+        """Start a new game session"""
+        if self._use_database:
+            self._session_id = self._db.create_game_session()
+            print(f"新しいゲームセッション開始: {self._session_id}")
+        self._current_points = 0
+        self._current_streak = 0
+        self._successful_recipes_amount = 0
+        self._failed_recipes_amount = 0
+    
+    def end_session(self):
+        """End the current game session"""
+        if self._use_database and self._session_id:
+            self._db.end_game_session(
+                self._session_id,
+                self._successful_recipes_amount,
+                self._failed_recipes_amount,
+                self._current_points
+            )
+            self._db.update_player_statistics(
+                self._successful_recipes_amount,
+                self._failed_recipes_amount,
+                self._current_points,
+                self._best_streak
+            )
+            print(f"ゲームセッション終了: {self._session_id}")
+            self._session_id = None
+    
+    def _calculate_points(self, recipe: RecipeSO) -> int:
+        """Calculate points for a successful delivery with combo multiplier"""
+        base_points = len(recipe.kitchen_object_so_list) * 50
+        return int(base_points * self._combo_multiplier)
     
     def update(self):
         """フレーム更新処理（UnityのUpdate相当）"""
@@ -179,7 +233,30 @@ class DeliveryManager:
                 # 材料が完全に一致した場合
                 if plate_contents_matches_recipe:
                     self._successful_recipes_amount += 1
+                    self._current_streak += 1
+                    self._best_streak = max(self._best_streak, self._current_streak)
+                    
+                    # Calculate points with combo multiplier
+                    points_earned = self._calculate_points(waiting_recipe_so)
+                    self._current_points += points_earned
+                    
+                    # Increase combo multiplier on streak
+                    if self._current_streak >= 3:
+                        self._combo_multiplier = 1.5
+                    if self._current_streak >= 5:
+                        self._combo_multiplier = 2.0
+                    
+                    # Remove delivered recipe
                     self._waiting_recipe_so_list.pop(i)
+                    
+                    # Record to database if enabled
+                    if self._use_database and self._session_id:
+                        # Find recipe id in database
+                        recipe_data = self._db.get_recipe_by_name(waiting_recipe_so.name)
+                        if recipe_data:
+                            self._db.add_delivery(self._session_id, recipe_data['id'], True, points_earned)
+                    
+                    print(f"配達成功! ポイント: +{points_earned} (コンボ: x{self._combo_multiplier}, ストリーク: {self._current_streak})")
                     
                     # 成功イベント発火
                     self.on_recipe_completed.invoke(self)
@@ -187,6 +264,15 @@ class DeliveryManager:
                     return
         
         # 一致するレシピが見つからなかった場合
+        self._failed_recipes_amount += 1
+        self._current_streak = 0
+        self._combo_multiplier = 1.0
+        
+        # Record failed delivery to database if enabled
+        if self._use_database and self._session_id:
+            self._db.add_delivery(self._session_id, 0, False, 0)
+        
+        print(f"配達失敗... ストリークリセット")
         self.on_recipe_failed.invoke(self)
     
     def get_waiting_recipe_so_list(self) -> List[RecipeSO]:
@@ -196,6 +282,29 @@ class DeliveryManager:
     def get_successful_recipes_amount(self) -> int:
         """成功したレシピ数を取得"""
         return self._successful_recipes_amount
+    
+    def get_current_points(self) -> int:
+        """現在のポイントを取得"""
+        return self._current_points
+    
+    def get_current_streak(self) -> int:
+        """現在のストリークを取得"""
+        return self._current_streak
+    
+    def get_combo_multiplier(self) -> float:
+        """現在のコンボ倍率を取得"""
+        return self._combo_multiplier
+    
+    def get_statistics(self) -> dict:
+        """Get game statistics"""
+        return {
+            'successful_deliveries': self._successful_recipes_amount,
+            'failed_deliveries': self._failed_recipes_amount,
+            'current_points': self._current_points,
+            'current_streak': self._current_streak,
+            'best_streak': self._best_streak,
+            'combo_multiplier': self._combo_multiplier
+        }
 
 
 # 使用例
@@ -215,14 +324,24 @@ if __name__ == "__main__":
     game_manager = KitchenGameManager.get_instance()
     game_manager.start_game()
     
-    delivery_manager = DeliveryManager.get_instance(recipe_list)
+    # Initialize database with sample data
+    db = Database("kitchen_game.db")
+    db.add_kitchen_object("Tomato", 1)
+    db.add_kitchen_object("Lettuce", 2)
+    db.add_kitchen_object("Bread", 3)
+    db.add_recipe("Sandwich", ["Bread", "Lettuce", "Tomato"])
+    db.add_recipe("Salad", ["Lettuce", "Tomato"])
+    
+    delivery_manager = DeliveryManager.get_instance(recipe_list, use_database=True)
+    delivery_manager.start_session()
     
     # イベントハンドラーの設定
     def on_recipe_spawned(sender, args):
         print("新しいレシピが生成されました！")
     
     def on_recipe_success(sender, args):
-        print("レシピ配達成功！")
+        stats = delivery_manager.get_statistics()
+        print(f"レシピ配達成功！ ポイント: {stats['current_points']}, ストリーク: {stats['current_streak']}")
     
     def on_recipe_failed(sender, args):
         print("レシピ配達失敗...")
@@ -240,15 +359,36 @@ if __name__ == "__main__":
         delivery_manager.update()
         time.sleep(0.1)  # 100ms間隔で更新
     
-    print(f"待機中のレシピ数: {len(delivery_manager.get_waiting_recipe_so_list())}")
+    print(f"\n待機中のレシピ数: {len(delivery_manager.get_waiting_recipe_so_list())}")
     
-    # サンプル配達テスト
-    plate = PlateKitchenObject()
-    plate.add_kitchen_object(bread)
-    plate.add_kitchen_object(lettuce)
-    plate.add_kitchen_object(tomato)
+    # サンプル配達テスト - 複数回配達してコンボをテスト
+    for i in range(3):
+        plate = PlateKitchenObject()
+        plate.add_kitchen_object(bread)
+        plate.add_kitchen_object(lettuce)
+        plate.add_kitchen_object(tomato)
+        
+        print(f"\nサンドイッチを配達 #{i+1}...")
+        delivery_manager.deliver_recipe(plate)
     
-    print("サンドイッチを配達...")
-    delivery_manager.deliver_recipe(plate)
+    stats = delivery_manager.get_statistics()
+    print(f"\n=== 最終統計 ===")
+    print(f"成功したレシピ数: {stats['successful_deliveries']}")
+    print(f"失敗したレシピ数: {stats['failed_deliveries']}")
+    print(f"総ポイント: {stats['current_points']}")
+    print(f"最高ストリーク: {stats['best_streak']}")
     
-    print(f"成功したレシピ数: {delivery_manager.get_successful_recipes_amount()}")
+    # Test SQL injection protection
+    print("\n=== SQL Injection Protection Test ===")
+    delivery_manager.get_recipe_by_name("Sandwich' OR '1'='1")
+    
+    # End session
+    delivery_manager.end_session()
+    
+    # Display player statistics
+    player_stats = db.get_player_statistics()
+    if player_stats:
+        print(f"\n=== プレイヤー統計 ===")
+        print(f"総ゲーム数: {player_stats['total_games']}")
+        print(f"総成功配達数: {player_stats['total_successful_deliveries']}")
+        print(f"総ポイント: {player_stats['total_points']}")
