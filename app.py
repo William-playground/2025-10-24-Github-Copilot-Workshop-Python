@@ -126,6 +126,8 @@ def get_status():
 def deliver():
     """Deliver a recipe"""
     data = request.json
+    if not data or not isinstance(data.get('ingredients'), list):
+        return jsonify({'status': 'error', 'message': 'Invalid request data'}), 400
     ingredients = data.get('ingredients', [])
     
     if not delivery_manager:
@@ -182,20 +184,13 @@ def get_statistics():
 def get_history():
     """Get recent game sessions"""
     db = Database()
-    
-    # Get last 10 sessions
-    with db._get_connection() as conn:
-        cursor = conn.cursor()
-        cursor.execute("""
-            SELECT * FROM game_sessions
-            WHERE is_active = 0
-            ORDER BY end_time DESC
-            LIMIT 10
-        """)
-        sessions = [dict(row) for row in cursor.fetchall()]
-    
+    sessions = db.get_recent_sessions(10)
     return jsonify(sessions)
 
 if __name__ == '__main__':
+    import os
     init_game()
-    app.run(debug=True, host='0.0.0.0', port=5000)
+    # Debug mode should be disabled in production
+    # Use environment variable to control debug mode
+    debug_mode = os.environ.get('FLASK_DEBUG', 'False').lower() == 'true'
+    app.run(debug=debug_mode, host='0.0.0.0', port=5000)

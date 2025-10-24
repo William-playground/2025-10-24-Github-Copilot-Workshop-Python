@@ -31,6 +31,9 @@ document.addEventListener('DOMContentLoaded', () => {
 async function startGame() {
     try {
         const response = await fetch('/api/start', { method: 'POST' });
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
         const data = await response.json();
         
         if (data.status === 'success') {
@@ -38,13 +41,14 @@ async function startGame() {
             startBtn.disabled = true;
             stopBtn.disabled = false;
             
-            // Start polling for game status
-            updateInterval = setInterval(updateGameStatus, 500);
+            // Start polling for game status (1 second interval)
+            updateInterval = setInterval(updateGameStatus, 1000);
             
             console.log('Game started successfully');
         }
     } catch (error) {
         console.error('Error starting game:', error);
+        showNotification('ゲーム開始エラー', 'error');
     }
 }
 
@@ -52,6 +56,9 @@ async function startGame() {
 async function stopGame() {
     try {
         const response = await fetch('/api/stop', { method: 'POST' });
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
         const data = await response.json();
         
         if (data.status === 'success') {
@@ -72,6 +79,7 @@ async function stopGame() {
         }
     } catch (error) {
         console.error('Error stopping game:', error);
+        showNotification('ゲーム停止エラー', 'error');
     }
 }
 
@@ -79,6 +87,9 @@ async function stopGame() {
 async function updateGameStatus() {
     try {
         const response = await fetch('/api/status');
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
         const data = await response.json();
         
         // Update statistics
@@ -192,6 +203,9 @@ async function deliverRecipe() {
             })
         });
         
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
         const data = await response.json();
         
         // Show feedback
@@ -217,6 +231,9 @@ async function deliverRecipe() {
 async function loadPlayerStatistics() {
     try {
         const response = await fetch('/api/statistics');
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
         const stats = await response.json();
         
         document.getElementById('totalGames').textContent = stats.total_games || 0;

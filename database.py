@@ -312,6 +312,18 @@ class Database:
             cursor.execute("SELECT * FROM player_statistics LIMIT 1")
             row = cursor.fetchone()
             return dict(row) if row else None
+    
+    def get_recent_sessions(self, limit: int = 10) -> List[dict]:
+        """Get recent game sessions"""
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("""
+                SELECT * FROM game_sessions
+                WHERE is_active = 0
+                ORDER BY end_time DESC
+                LIMIT ?
+            """, (limit,))
+            return [dict(row) for row in cursor.fetchall()]
 
 
 # Testing and initialization
@@ -338,22 +350,25 @@ if __name__ == "__main__":
     # Test SQL injection protection
     print("\nTesting SQL injection protection:")
     malicious_input = "Sandwich' OR '1'='1"
-    recipe = db.get_recipe_by_name(malicious_input)
-    print(f"Result with malicious input: {recipe}")
+    malicious_result = db.get_recipe_by_name(malicious_input)
+    print(f"Result with malicious input: {malicious_result}")
     
     # List all recipes
     print("\nAll recipes:")
-    for recipe in db.get_all_recipes():
-        print(f"- {recipe['name']}: {[i['name'] for i in recipe['ingredients']]}")
+    for recipe_item in db.get_all_recipes():
+        print(f"- {recipe_item['name']}: {[i['name'] for i in recipe_item['ingredients']]}")
     
     # Test session management
     print("\nTesting session management:")
     session_id = db.create_game_session()
     print(f"Created session: {session_id}")
     
-    # Add some deliveries
-    db.add_delivery(session_id, recipe['id'], True, 100)
-    db.add_delivery(session_id, recipe['id'], False, 0)
+    # Add some deliveries (check recipe is not None first)
+    if recipe:
+        db.add_delivery(session_id, recipe['id'], True, 100)
+        db.add_delivery(session_id, recipe['id'], False, 0)
+    else:
+        print("Warning: Recipe was None, skipping delivery tests")
     
     # End session
     db.end_game_session(session_id, 1, 1, 100)
