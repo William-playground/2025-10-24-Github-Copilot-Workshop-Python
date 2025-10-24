@@ -59,6 +59,7 @@ async function apiRequest(endpoint, method = 'GET', body = null) {
         return data;
     } catch (error) {
         console.error('API Error:', error);
+        showNotification('⚠️ サーバーとの通信に失敗しました');
         return null;
     }
 }
@@ -120,7 +121,7 @@ function startUpdateInterval() {
     if (updateInterval) {
         clearInterval(updateInterval);
     }
-    updateInterval = setInterval(updateTimerDisplay, 100); // 100msごとに更新
+    updateInterval = setInterval(updateTimerDisplay, 1000); // 1秒ごとに更新
 }
 
 /**
@@ -140,8 +141,36 @@ async function completeSession() {
     const result = await apiRequest('complete', 'POST');
     if (result && result.status === 'completed') {
         await updateProgressHistory();
-        alert('🎉 ポモドーロセッションが完了しました！');
+        // セッション完了を視覚的に通知（alertの代わり）
+        showNotification('🎉 ポモドーロセッションが完了しました！');
     }
+}
+
+/**
+ * 通知メッセージを表示
+ */
+function showNotification(message) {
+    const notification = document.createElement('div');
+    notification.textContent = message;
+    notification.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 15px 25px;
+        border-radius: 10px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        font-weight: 600;
+        z-index: 1000;
+        animation: slideIn 0.3s ease-out;
+    `;
+    document.body.appendChild(notification);
+    
+    setTimeout(() => {
+        notification.style.animation = 'slideOut 0.3s ease-out';
+        setTimeout(() => notification.remove(), 300);
+    }, 3000);
 }
 
 /**

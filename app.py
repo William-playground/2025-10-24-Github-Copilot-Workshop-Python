@@ -31,8 +31,13 @@ def load_progress():
 
 def save_progress():
     """進捗データをファイルに保存"""
-    with open(PROGRESS_FILE, 'w') as f:
-        json.dump(timer_state['progress_history'], f, indent=2)
+    try:
+        with open(PROGRESS_FILE, 'w') as f:
+            json.dump(timer_state['progress_history'], f, indent=2)
+    except IOError as e:
+        print(f"Error saving progress: {e}")
+    except Exception as e:
+        print(f"Unexpected error saving progress: {e}")
 
 
 @app.route('/')
@@ -170,4 +175,6 @@ if __name__ == '__main__':
     
     print("Pomodoro Timer API starting...")
     print("Access the application at: http://localhost:5000")
+    print("WARNING: This is a development server. Do not use in production!")
+    print("For production, use a WSGI server like Gunicorn and set debug=False")
     app.run(debug=True, host='0.0.0.0', port=5000)
