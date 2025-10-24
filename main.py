@@ -1,12 +1,12 @@
 from flask import Flask, render_template
 
 def create_app():
-    """Flask アプリケーションファクトリ"""
+    """Flask application factory"""
     app = Flask(__name__)
     
     @app.route('/')
     def index():
-        """メインページ"""
+        """Main page"""
         return render_template('index.html')
     
     return app
