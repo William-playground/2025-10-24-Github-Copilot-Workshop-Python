@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pomodoro Timer</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <h1 class="title">Pomodoro Timer</h1>
+        
+        <div class="timer-container">
+            <svg class="progress-ring" width="300" height="300">
+                <circle class="progress-ring-circle-bg" 
+                    stroke="#e0e0e0" 
+                    stroke-width="10" 
+                    fill="transparent" 
+                    r="140" 
+                    cx="150" 
+                    cy="150"/>
+                <circle class="progress-ring-circle" 
+                    stroke="#ff6b6b" 
+                    stroke-width="10" 
+                    fill="transparent" 
+                    r="140" 
+                    cx="150" 
+                    cy="150"/>
+            </svg>
+            <div class="timer-display">
+                <div class="time">25:00</div>
+                <div class="session-label">Focus</div>
+            </div>
+        </div>
+        
+        <div class="controls">
+            <button class="btn btn-start">Start</button>
+            <button class="btn btn-reset">Reset</button>
+        </div>
+        
+        <div class="progress-section">
+            <h2 class="section-title">Today's Progress</h2>
+            <div class="stats">
+                <div class="stat-item">
+                    <div class="stat-value">0</div>
+                    <div class="stat-label">Completed</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value">0</div>
+                    <div class="stat-label">Total Time</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="{{ url_for('static', filename='js/timer.js') }}"></script>
+</body>
+</html>
