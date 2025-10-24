@@ -65,7 +65,7 @@ def test_file_save_load():
     recipe_list = RecipeListSO([sandwich_recipe])
     
     # DeliveryManagerインスタンスを作成（Singletonをリセット）
-    DeliveryManager._instance = None
+    DeliveryManager.reset_instance()
     delivery_manager = DeliveryManager.get_instance(recipe_list, test_file)
     
     # セッション1を開始・完了
@@ -85,7 +85,7 @@ def test_file_save_load():
     print(f"Saved data: {json.dumps(saved_data, indent=2, ensure_ascii=False)}")
     
     # 新しいインスタンスで読み込み
-    DeliveryManager._instance = None
+    DeliveryManager.reset_instance()
     delivery_manager2 = DeliveryManager.get_instance(recipe_list, test_file)
     assert delivery_manager2.load_progress() == True
     print("✓ Progress loaded successfully")
@@ -106,7 +106,7 @@ def test_file_save_load():
     delivery_manager2.save_progress()
     
     # 再読み込みして累積を確認
-    DeliveryManager._instance = None
+    DeliveryManager.reset_instance()
     delivery_manager3 = DeliveryManager.get_instance(recipe_list, test_file)
     delivery_manager3.load_progress()
     progress3 = delivery_manager3.get_progress_data()
@@ -140,7 +140,7 @@ def test_session_completion():
     recipe_list = RecipeListSO([sandwich_recipe])
     
     # DeliveryManagerインスタンスを作成
-    DeliveryManager._instance = None
+    DeliveryManager.reset_instance()
     delivery_manager = DeliveryManager.get_instance(recipe_list, test_file)
     
     # セッション開始
@@ -201,7 +201,7 @@ def test_multiple_sessions():
     recipe_list = RecipeListSO([recipe])
     
     # DeliveryManagerインスタンスを作成
-    DeliveryManager._instance = None
+    DeliveryManager.reset_instance()
     delivery_manager = DeliveryManager.get_instance(recipe_list, test_file)
     
     # 複数セッションを実行

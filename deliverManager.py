@@ -186,6 +186,11 @@ class DeliveryManager:
             cls._instance = cls(recipe_list_so, progress_file)
         return cls._instance
     
+    @classmethod
+    def reset_instance(cls):
+        """Singletonインスタンスをリセット（テスト用）"""
+        cls._instance = None
+    
     def update(self):
         """フレーム更新処理（UnityのUpdate相当）"""
         current_time = time.time()
